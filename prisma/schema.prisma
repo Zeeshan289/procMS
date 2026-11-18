@@ -61,6 +61,7 @@ enum Role {
   CPO
   INSPECTORATE
   FIRM_REP
+  CENTRAL_REGISTRY // v4.4.1 §4.5 — files mail inward/outward, minutes, postal stamps
 }
 
 enum SectionKind {
@@ -1853,4 +1854,74 @@ model Discrepancy {
   inspection Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
 
   @@index([inspectionId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Central Registry (v4.4.1 manual pp.41–47; migration plan §4.5–§4.7)
+// ---------------------------------------------------------------------------
+
+enum CorrespondenceDirection {
+  INWARD
+  OUTWARD
+}
+
+/// IMF = Internal Minute File, EMF = External Minute File (OPEN_QUESTIONS Q5).
+enum MinuteKind {
+  IMF
+  EMF
+}
+
+/// One piece of official mail received by, or sent from, DP(N).
+model OfficialCorrespondence {
+  id               String                  @id @db.VarChar(26)
+  direction        CorrespondenceDirection
+  controlNumber    String                  @unique @db.VarChar(40) // e.g. CR/IN/2026/00001
+  subject          String                  @db.VarChar(500)
+  fromParty        String                  @db.VarChar(200)
+  toParty          String                  @db.VarChar(200)
+  receivedOrSentOn DateTime                @db.Date
+  assignedToUserId String?                 @db.VarChar(26)
+  remarks          String?                 @db.Text
+  documentKey      String?                 @db.VarChar(500)
+  createdByUserId  String                  @db.VarChar(26)
+  createdAt        DateTime                @default(now()) @db.DateTime(6)
+  updatedAt        DateTime                @updatedAt @db.DateTime(6)
+  version          Int                     @default(0)
+
+  minutes       CorrespondenceMinute[]
+  postalStamps  PostalStamp[]
+
+  @@index([direction, receivedOrSentOn])
+  @@index([assignedToUserId])
+}
+
+/// A minute (note) written on a correspondence record.
+model CorrespondenceMinute {
+  id               String                 @id @db.VarChar(26)
+  correspondenceId String                 @db.VarChar(26)
+  kind             MinuteKind
+  text             String                 @db.Text
+  authorUserId     String                 @db.VarChar(26)
+  createdAt        DateTime               @default(now()) @db.DateTime(6)
+
+  correspondence OfficialCorrespondence @relation(fields: [correspondenceId], references: [id], onDelete: Cascade)
+
+  @@index([correspondenceId, createdAt])
+}
+
+/// Postal stamp register (DAK accounting). Optionally tied to an outgoing letter.
+/// Kept per OPEN_QUESTIONS Q10 — drop if DAK has gone fully electronic.
+model PostalStamp {
+  id               String                  @id @db.VarChar(26)
+  correspondenceId String?                 @db.VarChar(26)
+  denomination     Decimal                 @db.Decimal(10, 2) // face value of ONE stamp, PKR
+  quantity         Int
+  usedOn           DateTime                @db.Date
+  enteredByUserId  String                  @db.VarChar(26)
+  createdAt        DateTime                @default(now()) @db.DateTime(6)
+
+  correspondence OfficialCorrespondence? @relation(fields: [correspondenceId], references: [id], onDelete: SetNull)
+
+  @@index([usedOn])
+  @@index([correspondenceId])
 }
