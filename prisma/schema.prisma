@@ -63,6 +63,7 @@ enum Role {
   FIRM_REP
   CENTRAL_REGISTRY // v4.4.1 §4.5 — files mail inward/outward, minutes, postal stamps
   AUDIT_STAFF // v4.4.1 §4.29–§4.30 — audit objections, items, draft paras
+  LEGAL_STAFF // v4.4.1 §4.31 — court cases + proceeding history
 }
 
 enum SectionKind {
@@ -2111,4 +2112,48 @@ model AuditItemObjectionLink {
 
   @@unique([auditItemId, auditObjectionId])
   @@index([auditObjectionId])
+}
+
+// Legal Section — Court Cases (v4.4.1 manual pp.194–200; migration plan §4.31; Q11)
+enum CourtCaseStatus {
+  PENDING
+  CLOSED
+  DISPOSED_OFF
+}
+
+model CourtCase {
+  id                String          @id @db.VarChar(26)
+  caseNumber        String          @unique @db.VarChar(80)
+  court             String          @db.VarChar(200)
+  party             String          @db.VarChar(200)
+  counterParty      String          @db.VarChar(200)
+  status            CourtCaseStatus @default(PENDING)
+  relatedIndentId   String?         @db.VarChar(26) // Indent.id, checked in the service
+  relatedContractId String?         @db.VarChar(26) // Contract.id, checked in the service
+  filedOn           DateTime        @db.Date
+  documentKey       String?         @db.VarChar(500)
+  createdByUserId   String          @db.VarChar(26)
+  createdAt         DateTime        @default(now()) @db.DateTime(6)
+  updatedAt         DateTime        @updatedAt @db.DateTime(6)
+  version           Int             @default(0)
+
+  proceedings CourtProceeding[]
+
+  @@index([status, filedOn])
+}
+
+model CourtProceeding {
+  id              String    @id @db.VarChar(26)
+  courtCaseId     String    @db.VarChar(26)
+  hearingDate     DateTime  @db.Date
+  outcome         String    @db.VarChar(500)
+  nextHearingDate DateTime? @db.Date
+  notes           String?   @db.Text
+  documentKey     String?   @db.VarChar(500)
+  createdByUserId String    @db.VarChar(26)
+  createdAt       DateTime  @default(now()) @db.DateTime(6)
+
+  courtCase CourtCase @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
+
+  @@index([courtCaseId, hearingDate])
 }
