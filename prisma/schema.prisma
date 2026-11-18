@@ -507,6 +507,7 @@ model ITPerforma {
   commercialOffers CommercialOffer[]
   tsr              TechnicalScrutinyReport?
   cst              CST?
+  ppraInvoiceLinks PPRAInvoiceITLink[]
 
   @@index([status])
 }
@@ -1943,4 +1944,49 @@ model Message {
   @@index([toUserId, readAt])
   @@index([fromUserId, sentAt])
   @@index([parentMessageId])
+}
+
+// PPRA Invoices (v4.4.1 manual pp.166–174; migration plan §4.27)
+enum PPRAInvoiceStatus {
+  RECEIVED
+  RETURNED
+  SENT_TO_DGPRN
+  PAID
+}
+
+/// Invoice from PPRA to DP(N) (tender upload fees etc.). A RETURNED invoice is final;
+/// PPRA's corrected invoice is filed as a new row with its own number.
+model PPRAInvoice {
+  id              String            @id @db.VarChar(26)
+  invoiceNumber   String            @unique @db.VarChar(60)
+  receivedOn      DateTime          @db.Date
+  amount          Decimal           @db.Decimal(20, 4)
+  currency        String            @default("PKR") @db.VarChar(3)
+  status          PPRAInvoiceStatus @default(RECEIVED)
+  returnedReason  String?           @db.Text
+  returnedOn      DateTime?         @db.Date
+  sentToDGPRNOn   DateTime?         @db.Date
+  paidOn          DateTime?         @db.Date
+  documentKey     String?           @db.VarChar(500)
+  createdByUserId String            @db.VarChar(26)
+  createdAt       DateTime          @default(now()) @db.DateTime(6)
+  updatedAt       DateTime          @updatedAt @db.DateTime(6)
+  version         Int               @default(0)
+
+  itLinks PPRAInvoiceITLink[]
+
+  @@index([status, receivedOn])
+}
+
+/// Which IT Proformas (tenders) an invoice covers. ppraUploadId comes later with Fahad's F1.
+model PPRAInvoiceITLink {
+  id            String @id @db.VarChar(26)
+  ppraInvoiceId String @db.VarChar(26)
+  itPerformaId  String @db.VarChar(26)
+
+  invoice    PPRAInvoice @relation(fields: [ppraInvoiceId], references: [id], onDelete: Cascade)
+  itPerforma ITPerforma  @relation(fields: [itPerformaId], references: [id])
+
+  @@unique([ppraInvoiceId, itPerformaId])
+  @@index([itPerformaId])
 }
