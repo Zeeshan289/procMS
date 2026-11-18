@@ -67,7 +67,7 @@ export default async function PPRAInvoicesPage({ searchParams }: { searchParams:
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="mono">{r.invoiceNumber}</td>
+                  <td className="mono"><Link href={`/finance/ppra-invoices/${r.id}`}>{r.invoiceNumber}</Link></td>
                   <td><DateLabel iso={r.receivedOn} /></td>
                   <td className="mono nowrap">{r.currency} {r.amountDisplay}</td>
                   <td>
