@@ -1925,3 +1925,22 @@ model PostalStamp {
   @@index([usedOn])
   @@index([correspondenceId])
 }
+
+/// Internal user-to-user mail (v4.4.1 manual pp.13–18; migration plan §4.4).
+model Message {
+  id              String    @id @db.VarChar(26)
+  fromUserId      String    @db.VarChar(26)
+  toUserId        String    @db.VarChar(26)
+  subject         String    @db.VarChar(200)
+  body            String    @db.Text
+  sentAt          DateTime  @default(now()) @db.DateTime(6)
+  readAt          DateTime? @db.DateTime(6)
+  parentMessageId String?   @db.VarChar(26)
+
+  parent  Message?  @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies Message[] @relation("MessageReplies")
+
+  @@index([toUserId, readAt])
+  @@index([fromUserId, sentAt])
+  @@index([parentMessageId])
+}
