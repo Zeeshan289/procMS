@@ -48,6 +48,7 @@ const NAV: NavItem[] = [
   { href: '/frameworks',         label: 'Frameworks',            icon: NAV_ICON.doc,       show: SHOW_WORKFLOW },
   { href: '/registry',           label: 'Central Registry',      icon: NAV_ICON.mail,      show: (r) => r.includes(Role.ADMIN) || r.includes(Role.CENTRAL_REGISTRY) },
   { href: '/mail/inbox', label: 'Mail box', icon: NAV_ICON.mail, show: (r, f) => !f || r.includes(Role.ADMIN) },
+  { href: '/finance/ppra-invoices', label: 'PPRA invoices', icon: NAV_ICON.doc, show: (r) => r.includes(Role.ADMIN) || r.includes(Role.BUDGET_STAFF) || r.includes(Role.ADP_STAFF) },
   { href: '/special',            label: 'Special cases',         icon: NAV_ICON.book,      show: (r) => r.includes(Role.ADMIN) || r.includes(Role.DP_N) || r.includes(Role.DGDP) || r.includes(Role.SECY_DP) || r.includes(Role.ADP_STAFF) || r.includes(Role.COORD_STAFF) },
   { href: '/firm/invites',       label: 'IT invites',            icon: NAV_ICON.mail,      show: (r, f) => !!f || r.includes(Role.ADMIN) },
   { href: '/firm/queries',       label: 'Firm queries',          icon: NAV_ICON.chat,      show: (r, f) => !!f || r.includes(Role.ADMIN) },
