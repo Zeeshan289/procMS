@@ -157,7 +157,11 @@ export async function listAssignableUsers(): Promise<readonly { id: string; labe
     orderBy: { displayName: 'asc' },
     select: { id: true, displayName: true, rank: true, email: true },
   });
-  return users.map((u) => ({ id: u.id, label: `${u.rank ? `${u.rank} ` : ''}${u.displayName} (${u.email})` }));
+  return users.map((u) => {
+    // Skip the rank prefix when displayName already starts with it ("Cdr M. Riaz").
+    const hasRank = !!u.rank && u.displayName.toLowerCase().startsWith(`${u.rank.toLowerCase()} `);
+    return { id: u.id, label: `${u.rank && !hasRank ? `${u.rank} ` : ''}${u.displayName} (${u.email})` };
+  });
 }
 
 // --- helpers ----------------------------------------------------------------
