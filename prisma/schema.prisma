@@ -508,6 +508,7 @@ model ITPerforma {
   tsr              TechnicalScrutinyReport?
   cst              CST?
   ppraInvoiceLinks PPRAInvoiceITLink[]
+  dgprnAcknowledgements DGPRNAcknowledgement[]
 
   @@index([status])
 }
@@ -1974,6 +1975,7 @@ model PPRAInvoice {
   version         Int               @default(0)
 
   itLinks PPRAInvoiceITLink[]
+  dgprnAcknowledgements DGPRNAcknowledgement[]
 
   @@index([status, receivedOn])
 }
@@ -1988,5 +1990,25 @@ model PPRAInvoiceITLink {
   itPerforma ITPerforma  @relation(fields: [itPerformaId], references: [id])
 
   @@unique([ppraInvoiceId, itPerformaId])
+  @@index([itPerformaId])
+}
+
+// DGPR(N) Acknowledgement (v4.4.1 manual pp.175–180; migration plan §4.28)
+/// DGPR(N)'s acknowledgement of a forwarded PPRA invoice and/or an IT publication.
+/// At least one of invoiceId / itPerformaId is set (enforced in the service).
+model DGPRNAcknowledgement {
+  id              String    @id @db.VarChar(26)
+  invoiceId       String?   @db.VarChar(26)
+  itPerformaId    String?   @db.VarChar(26)
+  receivedOn      DateTime  @db.Date
+  referenceNumber String    @db.VarChar(80)
+  remarks         String?   @db.Text
+  createdByUserId String    @db.VarChar(26)
+  createdAt       DateTime  @default(now()) @db.DateTime(6)
+
+  invoice    PPRAInvoice? @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  itPerforma ITPerforma?  @relation(fields: [itPerformaId], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId])
   @@index([itPerformaId])
 }
