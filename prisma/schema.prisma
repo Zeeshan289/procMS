@@ -62,6 +62,7 @@ enum Role {
   INSPECTORATE
   FIRM_REP
   CENTRAL_REGISTRY // v4.4.1 §4.5 — files mail inward/outward, minutes, postal stamps
+  AUDIT_STAFF // v4.4.1 §4.29–§4.30 — audit objections, items, draft paras
 }
 
 enum SectionKind {
@@ -2011,4 +2012,103 @@ model DGPRNAcknowledgement {
 
   @@index([invoiceId])
   @@index([itPerformaId])
+}
+
+// Audit Section (v4.4.1 manual pp.181–193; migration plan §4.29–§4.30; Q11)
+enum AuditRecordStatus {
+  OPEN
+  CLOSED
+  SETTLED
+}
+
+enum AuditObjectionStatus {
+  OPEN
+  REPLIED
+  SETTLED
+}
+
+enum AuditItemStatus {
+  AWAITED
+  REPLY
+  CLEARED
+}
+
+model AuditRecord {
+  id                String            @id @db.VarChar(26)
+  auditSection      String            @db.VarChar(120)
+  fiscalYearId      String            @db.VarChar(26) // FiscalYear.id, checked in the service
+  status            AuditRecordStatus @default(OPEN)
+  subjectIndentId   String?           @db.VarChar(26)
+  subjectContractId String?           @db.VarChar(26)
+  raisedOn          DateTime          @db.Date
+  documentKey       String?           @db.VarChar(500)
+  createdByUserId   String            @db.VarChar(26)
+  createdAt         DateTime          @default(now()) @db.DateTime(6)
+  updatedAt         DateTime          @updatedAt @db.DateTime(6)
+  version           Int               @default(0)
+
+  objections AuditObjection[]
+  items      AuditItem[]
+
+  @@index([status, raisedOn])
+  @@index([fiscalYearId])
+}
+
+model AuditObjection {
+  id                  String               @id @db.VarChar(26)
+  auditRecordId       String               @db.VarChar(26)
+  ground              String               @db.Text
+  para                String               @db.VarChar(40)
+  amountInvolvedMinor BigInt? // 10^-4 units, like domain/shared/Money
+  currency            String?              @db.VarChar(3)
+  status              AuditObjectionStatus @default(OPEN)
+  replyText           String?              @db.Text
+  repliedOn           DateTime?            @db.Date
+  repliedByUserId     String?              @db.VarChar(26)
+  createdAt           DateTime             @default(now()) @db.DateTime(6)
+
+  auditRecord AuditRecord              @relation(fields: [auditRecordId], references: [id], onDelete: Cascade)
+  itemLinks   AuditItemObjectionLink[]
+
+  @@index([auditRecordId])
+}
+
+model AuditItem {
+  id            String          @id @db.VarChar(26)
+  auditRecordId String          @db.VarChar(26)
+  itemText      String          @db.Text
+  status        AuditItemStatus @default(AWAITED)
+  replyText     String?         @db.Text
+  createdAt     DateTime        @default(now()) @db.DateTime(6)
+
+  auditRecord    AuditRecord              @relation(fields: [auditRecordId], references: [id], onDelete: Cascade)
+  draftParas     AuditDraftPara[]
+  objectionLinks AuditItemObjectionLink[]
+
+  @@index([auditRecordId])
+}
+
+model AuditDraftPara {
+  id              String   @id @db.VarChar(26)
+  auditItemId     String   @db.VarChar(26)
+  paraText        String   @db.Text
+  submittedOn     DateTime @db.Date
+  createdByUserId String   @db.VarChar(26)
+  createdAt       DateTime @default(now()) @db.DateTime(6)
+
+  auditItem AuditItem @relation(fields: [auditItemId], references: [id], onDelete: Cascade)
+
+  @@index([auditItemId])
+}
+
+model AuditItemObjectionLink {
+  id               String @id @db.VarChar(26)
+  auditItemId      String @db.VarChar(26)
+  auditObjectionId String @db.VarChar(26)
+
+  auditItem      AuditItem      @relation(fields: [auditItemId], references: [id], onDelete: Cascade)
+  auditObjection AuditObjection @relation(fields: [auditObjectionId], references: [id], onDelete: Cascade)
+
+  @@unique([auditItemId, auditObjectionId])
+  @@index([auditObjectionId])
 }
