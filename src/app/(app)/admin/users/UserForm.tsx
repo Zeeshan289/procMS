@@ -26,6 +26,7 @@ const ROLE_OPTIONS: MultiSelectOption[] = [
   { value: Role.CENTRAL_REGISTRY, label: 'CENTRAL_REGISTRY', hint: 'Mail inward/outward desk' },
   { value: Role.AUDIT_STAFF, label: 'AUDIT_STAFF', hint: 'Audit Section' },
   { value: Role.LEGAL_STAFF, label: 'LEGAL_STAFF', hint: 'Legal Section' },
+  { value: Role.COMMUNICATION_STAFF, label: 'COMMUNICATION_STAFF', hint: 'Communication Section (decision lock)' },
 ];
 
 export function UserForm(props:
