@@ -64,6 +64,7 @@ enum Role {
   CENTRAL_REGISTRY // v4.4.1 §4.5 — files mail inward/outward, minutes, postal stamps
   AUDIT_STAFF // v4.4.1 §4.29–§4.30 — audit objections, items, draft paras
   LEGAL_STAFF // v4.4.1 §4.31 — court cases + proceeding history
+  COMMUNICATION_STAFF // v4.4.1 §4.42 — Decision Approval lock / Un-Approve
 }
 
 enum SectionKind {
@@ -327,6 +328,7 @@ model Indent {
 
   createdAt DateTime @default(now()) @db.DateTime(6)
   updatedAt DateTime @updatedAt @db.DateTime(6)
+  decisionApprovalLocked Boolean @default(false) // Z8 Decision Approval (Q6) — separate from CLOSED
   version   Int      @default(0)
 
   indenter    User                        @relation("IndenterToIndent", fields: [indenterId], references: [id])
@@ -873,6 +875,7 @@ model Contract {
   status                ExecutionContractStatus @default(SIGNED)
   takingOverCertifiedOn DateTime?               @db.Date // taking-over certificate issued
   closedOn              DateTime?               @db.Date // contract formally closed
+  decisionApprovalLocked Boolean @default(false) // Z8 Decision Approval (Q6) — separate from CLOSED
   version               Int                     @default(0)
   createdAt             DateTime                @default(now()) @db.DateTime(6)
   updatedAt             DateTime                @updatedAt @db.DateTime(6)
@@ -2156,4 +2159,27 @@ model CourtProceeding {
   courtCase CourtCase @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
 
   @@index([courtCaseId, hearingDate])
+}
+
+// Decision Approval — Communication Section lock (v4.4.1 manual pp.253–256; §4.42; Q6)
+enum DecisionSubjectType {
+  INDENT
+  CONTRACT
+}
+
+enum DecisionAction {
+  APPROVE
+  UN_APPROVE
+}
+
+model DecisionApprovalEvent {
+  id              String              @id @db.VarChar(26)
+  subjectType     DecisionSubjectType
+  subjectId       String              @db.VarChar(26)
+  action          DecisionAction
+  decidedByUserId String              @db.VarChar(26)
+  decidedOn       DateTime            @default(now()) @db.DateTime(6)
+  remarks         String?             @db.Text
+
+  @@index([subjectType, subjectId, decidedOn])
 }
